@@ -367,8 +367,12 @@
 
                 if (error) throw error;
                 
+                const toastMessage = isAdding 
+                    ? `Successfully added ${member.name} to ${eventName}`
+                    : `Successfully deleted ${member.name} from ${eventName}`;
+                
                 logAction('UPDATE_PARTICIPATION', `${isAdding ? 'Added' : 'Removed'} ${member.name} in ${eventName}`);
-                showToast('Updated successfully');
+                showToast(toastMessage);
             } catch (err) {
                 console.error(err);
                 showToast('Update failed, reverting...', 'error');
