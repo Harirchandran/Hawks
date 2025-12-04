@@ -336,8 +336,15 @@
         }
 
         async function toggleParticipation(memberId, eventName, isAdding) {
-            const member = hawksData.find(m => m.id === memberId);
+            const member = hawksData.find(m => m.id == memberId); // Use == for type coercion
             if (!member) return;
+
+            // Confirm Action
+            const action = isAdding ? 'add' : 'remove';
+            const preposition = isAdding ? 'to' : 'from';
+            if (!confirm(`Are you sure you want to ${action} ${member.name} ${preposition} ${eventName}?`)) {
+                return;
+            }
 
             let events = member.participated_events || [];
             if (!Array.isArray(events)) events = []; // Handle null/undefined legacy data
@@ -600,11 +607,11 @@
 
                     <!-- Individual Stats Table -->
                     <div class="bg-white rounded-xl shadow-md overflow-hidden">
-                        <div class="p-4 bg-gray-50 border-b flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                        <div class="p-4 bg-gray-50 border-b flex flex-col md:flex-row md:justify-between md:items-center gap-3">
                             <div class="font-semibold text-gray-700 self-start">All Members (${memberCounts.length})</div>
-                            <input type="text" placeholder="Search by name or department..." class="w-full max-w-xs p-2 text-sm border rounded focus:outline-none focus:border-green-500" onkeyup="filterStatsTable(this)">
+                            <input type="text" placeholder="Search by name or department..." class="w-full md:max-w-xs p-2 text-sm border rounded focus:outline-none focus:border-green-500" onkeyup="filterStatsTable(this)">
                         </div>
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto hidden md:block">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50 sticky top-0">
                                     <tr>
@@ -632,6 +639,24 @@
                                 </tbody>
                             </table>
                         </div>
+                        <!-- Mobile Card View -->
+                        <div id="stats-card-list" class="block md:hidden p-4 space-y-3 bg-gray-50">
+                            ${memberCounts.map((m, i) => `
+                                <div class="stats-row bg-white p-4 rounded-lg shadow-sm border" data-name="${m.name.toLowerCase()}" data-dept="${m.dept.toLowerCase()}">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <div class="font-bold text-gray-800">${m.name}</div>
+                                            <div class="text-sm text-gray-500">${m.dept}</div>
+                                        </div>
+                                        <div class="text-sm text-gray-400 font-mono">#${i+1}</div>
+                                    </div>
+                                    <div class="flex justify-between items-center mt-3 pt-3 border-t">
+                                        <span class="px-3 py-1 text-sm font-bold rounded-full ${m.count > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}">Events: ${m.count}</span>
+                                        <button onclick="showMemberDetailModal('${m.id}')" class="text-green-600 hover:text-green-800 font-semibold text-sm">View Details</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
                     </div>
                 </div>
             `;
@@ -639,7 +664,7 @@
 
         function filterStatsTable(input) {
             const filter = input.value.toLowerCase();
-            document.querySelectorAll('#stats-table-body .stats-row').forEach(row => {
+            document.querySelectorAll('#stats-table-body .stats-row, #stats-card-list .stats-row').forEach(row => {
                 const name = row.dataset.name;
                 const dept = row.dataset.dept;
                 if (name.includes(filter) || dept.includes(filter)) {
@@ -702,32 +727,54 @@
                     
                     content.innerHTML = `
                         <div class="max-w-6xl mx-auto">
-                            <h2 class="text-3xl font-bold text-gray-800 border-b pb-4 mb-6">Activity Logs</h2>
-                            <div class="bg-white rounded-xl shadow overflow-x-auto">
-                                <table class="min-w-full divide-y divide-gray-200">
-                                    <thead class="bg-gray-50">
-                                        <tr>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Admin</th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="bg-white divide-y divide-gray-200 text-sm">
-                                        ${data.map(log => `
+                            <h2 class="text-3xl font-bold text-gray-800 border-b pb-4 mb-6">Activity Logs (Last 50)</h2>
+                            <!-- Desktop Table View -->
+                            <div class="bg-white rounded-xl shadow overflow-hidden hidden md:block">
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
                                             <tr>
-                                                <td class="px-6 py-4 whitespace-nowrap text-gray-500">${new Date(log.timestamp).toLocaleString()}</td>
-                                                <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${log.admin_username}</td>
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                        ${log.action}
-                                                    </span>
-                                                </td>
-                                                <td class="px-6 py-4 text-gray-500">${log.details}</td>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Admin</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
                                             </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200 text-sm">
+                                            ${data.map(log => `
+                                                <tr>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-gray-500">${new Date(log.timestamp).toLocaleString()}</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${log.admin_username}</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                            ${log.action}
+                                                        </span>
+                                                    </td>
+                                                    <td class="px-6 py-4 text-gray-500">${log.details}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <!-- Mobile Card View -->
+                            <div class="block md:hidden space-y-3">
+                                ${data.map(log => `
+                                    <div class="bg-white p-4 rounded-lg shadow-sm border">
+                                        <div class="flex justify-between items-center text-xs text-gray-500 mb-2">
+                                            <span>${new Date(log.timestamp).toLocaleString()}</span>
+                                            <span class="px-2 py-1 inline-flex font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                ${log.action}
+                                            </span>
+                                        </div>
+                                        <div class="text-sm text-gray-600">
+                                            <span class="font-semibold text-gray-800">Admin:</span> ${log.admin_username}
+                                        </div>
+                                        <div class="text-sm text-gray-600 mt-1">
+                                            <span class="font-semibold text-gray-800">Details:</span> ${log.details}
+                                        </div>
+                                    </div>
+                                `).join('')}
                             </div>
                         </div>
                     `;
