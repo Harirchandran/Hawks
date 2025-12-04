@@ -468,126 +468,55 @@
         function renderEventManagement(eventName, category) {
             const container = document.getElementById('participants-container');
             
-            // Partition members: Participating vs Not Participating
-            const participating = hawksData.filter(m => (m.participated_events || []).includes(eventName));
-            const notParticipating = hawksData.filter(m => !(m.participated_events || []).includes(eventName));
+            // Get all members and sort: participating first (green), then non-participating (red)
+            const allMembers = hawksData.map(m => ({
+                ...m,
+                isParticipating: (m.participated_events || []).includes(eventName)
+            })).sort((a, b) => {
+                // Sort by participation status (participating first)
+                return b.isParticipating - a.isParticipating;
+            });
 
             // Generate HTML
             let html = `
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-xl font-semibold text-green-700">${eventName}</h3>
-                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">Count: ${participating.length}</span>
+                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">Participating: ${allMembers.filter(m => m.isParticipating).length}/${allMembers.length}</span>
                 </div>
 
-                <div class="hidden lg:grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    
-                    <!-- Participating Column -->
-                    <div class="bg-green-50 p-4 rounded-lg border border-green-100">
-                        <h4 class="font-bold text-green-800 mb-3 flex items-center"><i class="ph ph-check-circle mr-2"></i> Participating</h4>
-                        ${participating.length === 0 ? '<p class="text-gray-400 italic text-sm p-2">No participants yet.</p>' : ''}
-                        <ul class="space-y-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                            ${participating.map(m => `
-                                <li class="flex justify-between items-center bg-white p-3 rounded shadow-sm hover:shadow-md transition">
-                                    <div>
-                                        <div class="font-medium text-gray-900">${m.name}</div>
-                                        <div class="text-xs text-gray-500">${m.department}</div>
-                                    </div>
-                                    <button onclick="toggleParticipation('${m.id}', '${eventName}', false)" class="text-red-500 hover:bg-red-50 p-2 rounded-full transition" title="Remove">
-                                        <i class="ph ph-minus-circle text-xl"></i>
+                <div class="bg-white p-4 rounded-lg border border-gray-200">
+                    <input type="text" placeholder="Search members..." class="w-full mb-3 p-2 text-sm border rounded focus:outline-none focus:border-green-500" onkeyup="filterMembers(this)">
+                    <ul class="space-y-2 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                        ${allMembers.map(m => `
+                            <li class="member-item flex justify-between items-center p-3 rounded-lg shadow-sm hover:shadow-md transition ${m.isParticipating ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}">
+                                <div>
+                                    <div class="font-medium text-gray-900 search-name">${m.name}</div>
+                                    <div class="text-xs text-gray-500">${m.department}</div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="toggleMemberParticipation('${m.id}', '${eventName}', ${!m.isParticipating})" class="${m.isParticipating ? 'text-green-600 hover:bg-green-100' : 'text-red-600 hover:bg-red-100'} p-3 rounded-full transition" title="${m.isParticipating ? 'Remove' : 'Add'}">
+                                        <i class="ph ${m.isParticipating ? 'ph-toggle-right' : 'ph-toggle-left'} text-4xl"></i>
                                     </button>
-                                </li>
-                            `).join('')}
-                        </ul>
-                    </div>
-
-                    <!-- Available Column -->
-                    <div class="bg-gray-100 p-4 rounded-lg border border-gray-200">
-                        <h4 class="font-bold text-gray-700 mb-3 flex items-center"><i class="ph ph-users mr-2"></i> Available Members</h4>
-                        <input type="text" placeholder="Search members..." class="w-full mb-3 p-2 text-sm border rounded focus:outline-none focus:border-green-500" onkeyup="filterAvailable(this)">
-                        <ul id="available-list" class="space-y-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                            ${notParticipating.map(m => `
-                                <li class="member-item flex justify-between items-center bg-white p-3 rounded shadow-sm hover:shadow-md transition opacity-80 hover:opacity-100">
-                                    <div>
-                                        <div class="font-medium text-gray-800 search-name">${m.name}</div>
-                                        <div class="text-xs text-gray-500">${m.department}</div>
-                                    </div>
-                                    <button onclick="toggleParticipation('${m.id}', '${eventName}', true)" class="text-green-600 hover:bg-green-50 p-2 rounded-full transition" title="Add">
-                                        <i class="ph ph-plus-circle text-xl"></i>
-                                    </button>
-                                </li>
-                            `).join('')}
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- Mobile Tabbed View -->
-                <div class="block lg:hidden">
-                    <div class="mb-4 flex rounded-md shadow-sm">
-                        <button data-tab="participating" onclick="switchMobileTab('participating', '${eventName}')" class="mobile-tab-btn w-1/2 p-3 font-semibold text-sm rounded-l-md bg-green-600 text-white">
-                            Participating (${participating.length})
-                        </button>
-                        <button data-tab="available" onclick="switchMobileTab('available', '${eventName}')" class="mobile-tab-btn w-1/2 p-3 font-semibold text-sm rounded-r-md bg-gray-200 text-gray-700">
-                            Available (${notParticipating.length})
-                        </button>
-                    </div>
-
-                    <!-- Participating Tab Content -->
-                    <div id="mobile-tab-participating" class="mobile-tab-content">
-                        ${participating.length === 0 ? '<p class="text-gray-400 italic text-sm p-4">No participants yet.</p>' : ''}
-                        <ul class="space-y-2">
-                            ${participating.map(m => `
-                                <li class="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm">
-                                    <div>
-                                        <div class="font-medium text-gray-900">${m.name}</div>
-                                        <div class="text-xs text-gray-500">${m.department}</div>
-                                    </div>
-                                    <button onclick="toggleParticipation('${m.id}', '${eventName}', false)" class="text-red-500 hover:bg-red-50 p-2 rounded-full transition" title="Remove">
-                                        <i class="ph ph-minus-circle text-xl"></i>
-                                    </button>
-                                </li>
-                            `).join('')}
-                        </ul>
-                    </div>
-
-                    <!-- Available Tab Content -->
-                    <div id="mobile-tab-available" class="mobile-tab-content hidden">
-                        <input type="text" placeholder="Search members..." class="w-full mb-3 p-2 text-sm border rounded focus:outline-none focus:border-green-500" onkeyup="filterAvailable(this)">
-                        <ul id="available-list" class="space-y-2">
-                             ${notParticipating.map(m => `
-                                <li class="member-item flex justify-between items-center bg-white p-3 rounded-lg shadow-sm">
-                                    <div>
-                                        <div class="font-medium text-gray-800 search-name">${m.name}</div>
-                                        <div class="text-xs text-gray-500">${m.department}</div>
-                                    </div>
-                                    <button onclick="toggleParticipation('${m.id}', '${eventName}', true)" class="text-green-600 hover:bg-green-50 p-2 rounded-full transition" title="Add">
-                                        <i class="ph ph-plus-circle text-xl"></i>
-                                    </button>
-                                </li>
-                            `).join('')}
-                        </ul>
-                    </div>
+                                </div>
+                            </li>
+                        `).join('')}
+                    </ul>
                 </div>
             `;
             container.innerHTML = html;
         }
 
-        function filterAvailable(input) {
+        function filterMembers(input) {
             const filter = input.value.toLowerCase();
             document.querySelectorAll('.member-item').forEach(item => {
                 const nameEl = item.querySelector('.search-name');
-                const originalName = nameEl.dataset.originalName || nameEl.innerText;
-                nameEl.dataset.originalName = originalName; // Store it if not already stored
-                const name = originalName.toLowerCase();
-
-                if (name.includes(filter) && filter) {
-                    item.style.display = '';
-                    const regex = new RegExp(filter.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'ig');
-                    nameEl.innerHTML = originalName.replace(regex, `<span class="highlight">$&</span>`);
-                } else {
-                    nameEl.innerHTML = originalName; // Reset
-                    item.style.display = name.includes(filter) ? '' : 'none';
-                }
+                const name = nameEl.innerText.toLowerCase();
+                item.style.display = name.includes(filter) ? 'flex' : 'none';
             });
+        }
+
+        async function toggleMemberParticipation(memberId, eventName, isAdding) {
+            await toggleParticipation(memberId, eventName, isAdding);
         }
 
         function renderStatistics() {
