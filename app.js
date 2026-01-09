@@ -15,7 +15,6 @@ try {
 const EVENTS = {
     'on-stage': [
         "Recitation (Malayalam)", "Recitation (English)", "Recitation (Hindi)",
-        "Elocution (Malayalam)", "Elocution (English)", "Elocution (Hindi)","Elocution (Malayalam)", "Elocution (English)", "Elocution (Hindi)",
         "Group Song", "Solo Song", "Vanchipattu", "Solo Dance", "Group Dance",
         "Mime", "Nadanpattu", "Fancy Dress", "Spot Choreography",
         "Solo Dance (Cinematic)", "Solo Dance (Classical)",
@@ -25,6 +24,7 @@ const EVENTS = {
         "Essay Writing (Malayalam)", "Essay Writing (English)", "Essay Writing (Hindi)",
         "Short Story Writing (Malayalam)", "Short Story Writing (English)", "Short Story Writing (Hindi)",
         "Poem Writing (Malayalam)", "Poem Writing (English)", "Poem Writing (Hindi)",
+        "Elocution (Malayalam)", "Elocution (English)", "Elocution (Hindi)",
         "Pencil Drawing", "Cartoon Drawing", "Watercolor Painting", "Collage",
         "Mehandi Competition", "Photography Competition", "Reels Competition"
     ],
