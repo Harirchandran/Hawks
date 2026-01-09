@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hawks House Manager</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- jsPDF AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="bg-gray-50 text-gray-800 h-screen overflow-hidden flex">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-green-800 text-white flex-col hidden md:flex shadow-xl">
+        <div class="p-6 text-center border-b border-green-700">
+            <h2 class="text-2xl font-bold">🦅 Hawks Live</h2>
+            <p class="text-xs text-green-300 mt-1">Realtime Data Management System</p>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <button onclick="router('on-stage')"
+                class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-700 transition"
+                data-target="on-stage">
+                <i class="ph ph-microphone-stage text-xl"></i><span>On Stage</span>
+            </button>
+            <button onclick="router('off-stage')"
+                class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-700 transition"
+                data-target="off-stage">
+                <i class="ph ph-pencil-simple text-xl"></i><span>Off Stage</span>
+            </button>
+            <button onclick="router('sports')"
+                class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-700 transition"
+                data-target="sports">
+                <i class="ph ph-trophy text-xl"></i><span>Sports</span>
+            </button>
+            <button onclick="router('statistics')"
+                class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-700 transition"
+                data-target="statistics">
+                <i class="ph ph-chart-bar text-xl"></i><span>Statistics</span>
+            </button>
+            <button onclick="router('logs')"
+                class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-700 transition"
+                data-target="logs">
+                <i class="ph ph-file-text text-xl"></i><span>Logs</span>
+            </button>
+            <button onclick="router('export')"
+                class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-green-700 transition"
+                data-target="export">
+                <i class="ph ph-download-simple text-xl"></i><span>Export Data</span>
+            </button>
+        </nav>
+        <div class="p-4 border-t border-green-700">
+            <div class="flex items-center space-x-3 text-green-300">
+                <i class="ph ph-user-circle text-2xl"></i>
+                <span id="desktop-user-greeting" class="text-sm">Hawakian</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Mobile Header -->
+    <div class="fixed top-0 left-0 right-0 bg-green-800 text-white shadow-xl z-50 md:hidden">
+        <!-- Top Bar with Logo and Menu -->
+        <div class="flex justify-between items-center px-3 py-2">
+            <h2 class="font-bold text-base">🦅 Hawks</h2>
+            <button onclick="toggleMobileMenu()" class="p-2 hover:bg-green-700 rounded-lg transition">
+                <i class="ph ph-list text-xl"></i>
+            </button>
+        </div>
+        <!-- Quick Nav Tabs -->
+        <div class="flex justify-around bg-green-700 px-2 py-1.5">
+            <button onclick="router('on-stage')"
+                class="mobile-quick-tab flex flex-col items-center px-3 py-1 rounded-lg transition"
+                data-target="on-stage">
+                <i class="ph ph-microphone-stage text-lg"></i>
+                <span class="text-[10px] mt-0.5">On Stage</span>
+            </button>
+            <button onclick="router('off-stage')"
+                class="mobile-quick-tab flex flex-col items-center px-3 py-1 rounded-lg transition"
+                data-target="off-stage">
+                <i class="ph ph-pencil-simple text-lg"></i>
+                <span class="text-[10px] mt-0.5">Off Stage</span>
+            </button>
+            <button onclick="router('sports')"
+                class="mobile-quick-tab flex flex-col items-center px-3 py-1 rounded-lg transition"
+                data-target="sports">
+                <i class="ph ph-trophy text-lg"></i>
+                <span class="text-[10px] mt-0.5">Sports</span>
+            </button>
+            <button onclick="router('logs')"
+                class="mobile-quick-tab flex flex-col items-center px-3 py-1 rounded-lg transition relative"
+                data-target="logs">
+                <i class="ph ph-file-text text-lg"></i>
+                <span class="text-[10px] mt-0.5">Logs</span>
+                <!-- New Log Badge -->
+                <span id="log-badge"
+                    class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">0</span>
+            </button>
+        </div>
+        <!-- Mobile Menu Dropdown (for other options) -->
+        <nav id="mobile-menu" class="hidden bg-green-600 px-4 py-3 space-y-2">
+            <button onclick="router('statistics'); toggleMobileMenu();"
+                class="mobile-nav-item w-full flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-green-500 transition text-left"
+                data-target="statistics">
+                <i class="ph ph-chart-bar"></i><span>Statistics</span>
+            </button>
+            <button onclick="router('export'); toggleMobileMenu();"
+                class="mobile-nav-item w-full flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-green-500 transition text-left"
+                data-target="export">
+                <i class="ph ph-download-simple"></i><span>Export Data</span>
+            </button>
+            <div class="pt-2 border-t border-green-500 mt-2 flex items-center space-x-2 text-green-200 text-sm">
+                <i class="ph ph-user-circle text-xl"></i>
+                <span id="mobile-user-greeting">Hi, User</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col overflow-hidden pt-24 md:pt-0">
+        <!-- Content -->
+        <div id="content-area" class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50">
+            <div class="flex justify-center items-center h-full">
+                <div class="loader"></div>
+            </div>
+        </div>
+
+        <!-- Toast Notification Container -->
+        <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2"></div>
+    </main>
+
+    <!-- Generic Modal -->
+    <div id="modal-overlay"
+        class="fixed inset-0 bg-gray-900 bg-opacity-75 z-[60] hidden flex items-center justify-center p-4">
+        <div id="modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 id="modal-title" class="text-xl font-bold text-gray-800">Modal Title</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 p-2 rounded-full">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+            <div id="modal-body" class="p-6 overflow-y-auto">
+                <!-- Modal content goes here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script src="app.js" defer></script>
+</body>
+
+</html>
